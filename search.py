@@ -82,31 +82,19 @@ def depthFirstSearch(problem):
   print "Start's successors:", problem.getSuccessors(problem.getStartState())
   """
   "*** YOUR CODE HERE ***"
-  # Initialize an empty Stack
-  stack = util.Stack()
-
-  # DFS is general graph search with a Stack as the data structure
-  return generalGraphSearch(problem, stack)
+  return graphSearch(problem, util.Stack())
 
 def breadthFirstSearch(problem):
   "Search the shallowest nodes in the search tree first. [p 74]"
   "*** YOUR CODE HERE ***"
-  # Initialize an empty Queue
-  queue = util.Queue()
-
-  # BFS is general graph search with a Queue as the data structure
-  return generalGraphSearch(problem, queue)
+  return graphSearch(problem, util.Queue())
       
 def uniformCostSearch(problem):
   "Search the node of least total cost first. "
   "*** YOUR CODE HERE ***"
-  cost = lambda path: problem.getCostOfActions([x[1] for x in path][1:])
-
-  # Construct an empty priority queue that sorts using this backwards cost
-  pq = util.PriorityQueueWithFunction(cost)
-
-  # UCS is general graph search with the PriorityQueue sorting by the cost as the data structure
-  return generalGraphSearch(problem, pq)
+  #lambda represent the cost of given path
+  cost_function = lambda (state, path): problem.getCostOfActions(path)
+  return graphSearch(problem, util.PriorityQueueWithFunction(cost_function))
 
 def nullHeuristic(state, problem=None):
   """
@@ -118,61 +106,35 @@ def nullHeuristic(state, problem=None):
 def aStarSearch(problem, heuristic=nullHeuristic):
   "Search the node that has the lowest combined cost and heuristic first."
   "*** YOUR CODE HERE ***"
-  cost = lambda path: problem.getCostOfActions([x[1] for x in path][1:]) + heuristic(path[-1][0], problem)
+   # lambda represent the cost of given path plus heuristic prediction for the state and problem
+  cost_func = lambda (state, path): problem.getCostOfActions(path) + heuristic(state, problem)
+  return graphSearch(problem, util.PriorityQueueWithFunction(cost_func))
 
-  # Construct an empty priority queue that sorts using f(x)
-  pq = util.PriorityQueueWithFunction(cost)
+def graphSearch(problem, data_structure):
+    start = problem.getStartState()
 
-  # A* is general graph search with the PriorityQueue sorting by the f(x) as the data structure
-  return generalGraphSearch(problem, pq)
-    
+    #initial state of the data_structure is the initial state and an empty path to
+    data_structure.push((start, []))
+    explored_nodes = set()
+    while True:
+        if data_structure.isEmpty():
+            return []
+        current_node, current_path = data_structure.pop()
 
-def generalGraphSearch(problem, structure):
-    """
-    Defines a general algorithm to search a graph.
-    Parameters are structure, which can be any data structure with .push() and .pop() methods, and problem, which is the
-    search problem.
-    """
+         #if goal state reached, send current path that have been built so far
+        if problem.isGoalState(current_node):
+            return current_path
 
-    # Push the root node/start into the data structure in this format: [(state, action taken, cost)]
-    # The list pushed into the structure for the second node will look something like this:
-    # [(root_state, "Stop", 0), (new_state, "North", 1)]
-    structure.push([(problem.getStartState(), "Stop", 0)])
+        #if state was not explored add children to data_structure
+        if current_node not in explored_nodes:
+            explored_nodes.add(current_node)
+            for child in problem.getSuccessors(current_node):
+                state, direction, _ = child
 
-    # Initialise the list of visited nodes to an empty list
-    visited = []
-
-    # While the structure is not empty, i.e. there are still elements to be searched,
-    while not structure.isEmpty():
-        # get the path returned by the data structure's .pop() method
-        path = structure.pop()
-
-        # The current state is the first element in the last tuple of the path
-        # i.e. [(root_state, "Stop", 0), (new_state, "North", 1)][-1][0] = (new_state, "North", 1)[0] = new_state
-        curr_state = path[-1][0]
-
-        # if the current state is the goal state,
-        if problem.isGoalState(curr_state):
-            # return the actions to the goal state
-            # which is the second element for each tuple in the path, ignoring the first "Stop"
-            return [x[1] for x in path][1:]
-
-        # if the current state has not been visited,
-        if curr_state not in visited:
-            # mark the current state as visited by appending to the visited list
-            visited.append(curr_state)
-
-            # for all the successors of the current state,
-            for successor in problem.getSuccessors(curr_state):
-                # successor[0] = (state, action, cost)[0] = state
-                # if the successor's state is unvisited,
-                if successor[0] not in visited:
-                    # Copy the parent's path
-                    successorPath = path[:]
-                    # Set the path of the successor node to the parent's path + the successor node
-                    successorPath.append(successor)
-                    # Push the successor's path into the structure
-                    structure.push(successorPath)
+                if state not in explored_nodes:
+                    #concatenate child direction with current path and push to data_structure with child state
+                    child_path = current_path[:] + [direction]
+                    data_structure.push((state, child_path))
 
 # Abbreviations
 bfs = breadthFirstSearch
